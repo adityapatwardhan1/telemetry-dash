@@ -29,6 +29,7 @@ def verify_password(plain_password, hashed_password):
     try:
         return hasher.verify(hashed_password, plain_password)
     except VerifyMismatchError:
+        print("VerifyMismatchError")
         return False
     except Exception as e:
         print("An unexpected error occurred during password verification:")

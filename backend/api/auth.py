@@ -5,6 +5,7 @@ from backend.db import get_db
 from backend.models import User
 from backend.auth import verify_password
 from backend.token_utils import create_access_token
+from backend.dependencies import get_current_user  # Adjust import as needed
 
 router = APIRouter()
 
@@ -26,3 +27,8 @@ def login(data: LoginRequest, db: Session = Depends(get_db)):
         )
     token = create_access_token({"sub": user.username, "role": user.role})
     return {"access_token": token, "token_type": "bearer"}
+
+@router.get("/me")
+async def read_users_me(current_user: User = Depends(get_current_user)):
+    """Gets the current user"""
+    return current_user
