@@ -1,3 +1,6 @@
 backend/venv
 backend/telemetry_dash.db
 __pycache__
+test_me.sh
+test_telemetry.sh
+test_ws.sh

@@ -32,3 +32,7 @@ def login(data: LoginRequest, db: Session = Depends(get_db)):
 async def read_users_me(current_user: User = Depends(get_current_user)):
     """Gets the current user"""
     return current_user
+
+@router.get("/telemetry")
+async def read_telemetry(current_user: User = Depends(get_current_user)):
+    return {"data": "your telemetry data here"}
