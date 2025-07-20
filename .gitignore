@@ -6,3 +6,5 @@ test_telemetry.sh
 test_ws.sh
 backend/scripts/get_token.py
 .env
+backend/scripts/generate_test_token.py
+tests/test_send_telemetry.py

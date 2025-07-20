@@ -28,7 +28,10 @@ def decode_access_token(token):
     :returns: The decoded JWT token or None if invalid
     """
     try:
-        return jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-    except JWTError:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        print("Decoded token payload:", payload)
+        return payload
+    except JWTError as e:
         print("JWT error occurred")
+        print(e)
         return None
