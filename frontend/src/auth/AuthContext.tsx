@@ -6,7 +6,7 @@ type AuthContextType = {
   logout: () => void;
 };
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
+export const AuthContext = createContext<AuthContextType | null>(null);
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [token, setToken] = useState<string | null>(null);
@@ -26,3 +26,4 @@ export const useAuth = () => {
   if (!ctx) throw new Error("useAuth must be used inside AuthProvider");
   return ctx;
 };
+

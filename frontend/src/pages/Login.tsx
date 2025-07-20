@@ -1,24 +1,35 @@
-import { useState } from "react";
+import { useState, useContext } from "react";
+import axios from "axios";
 import { useNavigate } from "react-router-dom";
-import { useAuth } from "../auth/AuthContext";
-import { loginUser } from "../api/auth";
+import { AuthContext } from "../auth/AuthContext";
 
 export default function Login() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
-  const { login } = useAuth();
+  const auth = useContext(AuthContext);
   const navigate = useNavigate();
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    const token = await loginUser(username, password);
-    login(token);
-    navigate("/");
+    try {
+      const res = await axios.post("http://localhost:8000/api/login", { username, password });
+
+      // const res = await axios.post("/api/login", { username, password });
+      const token = res.data.access_token;
+
+      if (auth) {
+        auth.login(token); // ✅ use login() from context
+      }
+
+      navigate("/dashboard"); // or wherever
+    } catch (err) {
+      console.error("Login failed:", err);
+    }
   };
 
   return (
     <div className="min-h-screen flex items-center justify-center">
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form onSubmit={handleLogin} className="space-y-4">
         <h2 className="text-xl font-semibold">Telemon Login</h2>
         <input
           type="text"
