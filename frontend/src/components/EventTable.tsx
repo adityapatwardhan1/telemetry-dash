@@ -29,7 +29,7 @@ const columns = [
     cell: (info) => info.getValue(),
   }),
   columnHelper.accessor('threshold', {
-    header: () => 'Threshold',
+    header: () => 'Acceptable Range',
   })
 ];
 

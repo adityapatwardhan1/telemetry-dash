@@ -1,95 +1,125 @@
 import { useEffect, useState, useRef } from "react";
 
 type MetricPoint = {
-	timestamp: number;
-	value: number;
+  timestamp: number;
+  value: number;
 };
 
 type MetricData = MetricPoint[];
 
 type CurrentMetrics = {
-	cpu: number;
-	memory: number;
-	battery: number;
-	temperature: number;
-	speed: number;
-	lastAnomalyTime: string;
+  cpu: number;
+  memory: number;
+  battery: number;
+  temperature: number;
+  speed: number;
+  lastAnomalyTime: string;
 };
 
 export type AlertEvent = {
-	time: string;
-	metric: string;
-	value: number;
-	threshold: number;
+  time: string;
+  metric: string;
+  value: number;
+  threshold: string; // e.g. "35–75°C"
 };
 
 export default function useTelemetry() {
-	// Time-series data for graphs
-	const [telemetryData, setTelemetryData] = useState<{
-		cpu: MetricData;
-		memory: MetricData;
-		battery: MetricData;
-	}>({
-		cpu: [],
-		memory: [],
-		battery: [],
-	});
+  const [telemetryData, setTelemetryData] = useState<{
+    cpu: MetricData;
+    memory: MetricData;
+    battery: MetricData;
+    temperature: MetricData;
+  }>({
+    cpu: [],
+    memory: [],
+    battery: [],
+    temperature: [],
+  });
 
-	// Current values for cards
-	const [currentMetrics, setCurrentMetrics] = useState<CurrentMetrics>({
-		cpu: 0,
-		memory: 0,
-		battery: 0,
-		temperature: 0,
-		speed: 0,
-		lastAnomalyTime: "-",
-	});
+  const [currentMetrics, setCurrentMetrics] = useState<CurrentMetrics>({
+    cpu: 0,
+    memory: 0,
+    battery: 0,
+    temperature: 0,
+    speed: 0,
+    lastAnomalyTime: "-",
+  });
 
-	// Recent alert events
-	const [alertEvents, setAlertEvents] = useState<AlertEvent[]>([]);
+  const [alertEvents, setAlertEvents] = useState<AlertEvent[]>([]);
+  const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
-	const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  // Threshold ranges
+  const cpuMin = 0;
+  const cpuMax = 85;
+  const batteryMin = 90;
+  const batteryMax = 100;
+  const tempMin = 35;
+  const tempMax = 75;
 
-	useEffect(() => {
-		// Simulate data every second (replace with WebSocket if available)
-		intervalRef.current = setInterval(() => {
-			const now = Date.now();
+  useEffect(() => {
+    intervalRef.current = setInterval(() => {
+      const now = Date.now();
 
-			const cpuVal = Math.random() * 100;
-			const memoryVal = Math.random() * 100;
-			const batteryVal = 90 + Math.random() * 10;
+      const cpuVal = Math.random() * 100;
+      const memoryVal = Math.random() * 100;
+      const batteryVal = 85 + Math.random() * 20; // 85–105
+      const tempVal = 30 + Math.random() * 50;     // 30–80
 
-			setTelemetryData((prev) => ({
-				cpu: [...prev.cpu.slice(-49), { timestamp: now, value: cpuVal }],
-				memory: [...prev.memory.slice(-49), { timestamp: now, value: memoryVal }],
-				battery: [...prev.battery.slice(-49), { timestamp: now, value: batteryVal }],
-			}));
+      setTelemetryData((prev) => ({
+        cpu: [...prev.cpu.slice(-49), { timestamp: now, value: cpuVal }],
+        memory: [...prev.memory.slice(-49), { timestamp: now, value: memoryVal }],
+        battery: [...prev.battery.slice(-49), { timestamp: now, value: batteryVal }],
+        temperature: [...prev.temperature.slice(-49), { timestamp: now, value: tempVal }],
+      }));
 
-			setCurrentMetrics({
-				cpu: cpuVal,
-				memory: memoryVal,
-				battery: batteryVal,
-				temperature: 35 + Math.random() * 5,
-				speed: Math.random() * 80,
-				lastAnomalyTime: Math.random() > 0.95 ? new Date().toLocaleTimeString() : currentMetrics.lastAnomalyTime,
-			});
+      setCurrentMetrics({
+        cpu: cpuVal,
+        memory: memoryVal,
+        battery: batteryVal,
+        temperature: tempVal,
+        speed: Math.random() * 80,
+        lastAnomalyTime:
+          Math.random() > 0.95 ? new Date().toLocaleTimeString() : currentMetrics.lastAnomalyTime,
+      });
 
-			// Fake alert condition
-			if (cpuVal > 85 || memoryVal > 90) {
-				const newEvent: AlertEvent = {
-				time: new Date().toLocaleTimeString(),
-				metric: cpuVal > 85 ? "CPU" : "Memory",
-				value: cpuVal > 85 ? cpuVal : memoryVal,
-				threshold: cpuVal > 85 ? 85 : 90,
-				};
-				setAlertEvents((prev) => [newEvent, ...prev.slice(0, 9)]); // Keep only 10 recent
-			}
-		}, 1000);
+      const alerts: AlertEvent[] = [];
 
-		return () => {
-			if (intervalRef.current) clearInterval(intervalRef.current);
-		};
-	}, []);
+      if (cpuVal < cpuMin || cpuVal > cpuMax) {
+        alerts.push({
+          time: new Date().toLocaleTimeString(),
+          metric: "CPU",
+          value: cpuVal,
+          threshold: `${cpuMin}–${cpuMax}%`,
+        });
+      }
 
-	return { telemetryData, currentMetrics, alertEvents };
+      if (batteryVal < batteryMin || batteryVal > batteryMax) {
+        alerts.push({
+          time: new Date().toLocaleTimeString(),
+          metric: "Battery",
+          value: batteryVal,
+          threshold: `${batteryMin}–${batteryMax}%`,
+        });
+      }
+
+      if (tempVal < tempMin || tempVal > tempMax) {
+        alerts.push({
+          time: new Date().toLocaleTimeString(),
+          metric: "Temperature",
+          value: tempVal,
+          threshold: `${tempMin}–${tempMax}°C`,
+        });
+      }
+
+      if (alerts.length > 0) {
+        setAlertEvents((prev) => [...alerts, ...prev].slice(0, 10)); // Keep top 10
+      }
+    }, 1000);
+
+    return () => {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+    };
+  }, []);
+
+  return { telemetryData, currentMetrics, alertEvents };
 }
