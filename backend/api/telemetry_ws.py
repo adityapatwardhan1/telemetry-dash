@@ -46,7 +46,6 @@ async def telemetry_websocket(websocket: WebSocket):
     db = next(get_db())
     user = db.query(User).filter(User.username == username).first()
     if user is None:
-        print("user is None")
         await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
         return
 
@@ -77,7 +76,7 @@ async def telemetry_websocket(websocket: WebSocket):
             db.commit()
 
             # Check alerts
-            alerts = check_alerts(data_dict)
+            alerts = check_alerts(data_dict, db)
             if any(alerts.values()):
                 alert_msg = format_alert_message(new_telemetry_data.device_id, alerts, raw_ts or timestamp.isoformat())
                 await websocket.send_json(alert_msg)

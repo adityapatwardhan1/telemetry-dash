@@ -1,32 +1,58 @@
 from typing import Dict, Any
+from sqlalchemy.orm import Session
+from backend.models import Threshold  # Assuming this is your Threshold SQLAlchemy model
 
-def check_alerts(telemetry_data: Dict[str, Any]) -> Dict[str, bool]:
-    """
-    Check telemetry data against alert thresholds
+# Default thresholds
+DEFAULTS_MIN = {
+    "battery": 20.0,      # percent
+    "cpu_usage": 0.0,    # percent
+    "temperature": 0.0,  # Celsius
+}
 
-    :param telemetry_data: Dictionary containing telemetry metrics (e.g., battery, cpu_usage, temperature).
-    :return: Dictionary where keys are alert names and values are booleans indicating if alert is triggered.
+DEFAULTS_MAX = {
+    "battery": 101.0,      # percent
+    "cpu_usage": 80.0,    # percent
+    "temperature": 60.0,  # Celsius
+}
+
+def check_alerts(telemetry_data: Dict[str, Any], db: Session) -> Dict[str, bool]:
     """
-    BATTERY_THRESHOLD = 20.0  # percent
-    CPU_THRESHOLD = 80.0      # percent
-    TEMP_THRESHOLD = 60.0     # Celsius
+    Check telemetry data against custom alert thresholds for a specific device.
+
+    :param telemetry_data: Dictionary with telemetry values.
+    :param db: SQLAlchemy DB session.
+    :return: Dict of alert booleans keyed by alert name.
+    """
+    device_id = telemetry_data.get("device_id")
+    
+    # Fetch thresholds if they exist
+    thresholds = db.query(Threshold).filter(Threshold.device_id == device_id).all()
+    threshold_map = {t.metric: t for t in thresholds}
+
+    battery_threshold = threshold_map.get("battery")
+    cpu_threshold = threshold_map.get("cpu_usage")
+    temp_threshold = threshold_map.get("temperature")
+    
+    battery_min = battery_threshold.min_value if battery_threshold and battery_threshold.min_value is not None else DEFAULTS_MIN["battery"]
+    cpu_min = cpu_threshold.min_value if cpu_threshold and cpu_threshold.min_value is not None else DEFAULTS_MIN["cpu_usage"]
+    temp_min = temp_threshold.min_value if temp_threshold and temp_threshold.min_value is not None else DEFAULTS_MIN["temperature"]
+    
+    battery_max = battery_threshold.max_value if battery_threshold and battery_threshold.max_value is not None else DEFAULTS_MAX["battery"]
+    cpu_max = cpu_threshold.max_value if cpu_threshold and cpu_threshold.max_value is not None else DEFAULTS_MAX["cpu_usage"]
+    temp_max = temp_threshold.max_value if temp_threshold and temp_threshold.max_value is not None else DEFAULTS_MAX["temperature"]
 
     alerts = {
-        "battery_alert": telemetry_data.get("battery", 100) < BATTERY_THRESHOLD,
-        "cpu_alert": telemetry_data.get("cpu_usage", 0) > CPU_THRESHOLD,
-        "temperature_alert": telemetry_data.get("temperature", 0) > TEMP_THRESHOLD
+        "battery_alert": not (battery_min <= telemetry_data.get("battery", 100) <= battery_max), 
+        "cpu_usage_alert": not (cpu_min <= telemetry_data.get("cpu_usage", 100) <= cpu_max), 
+        "temperature_alert": not (temp_min <= telemetry_data.get("temperature", 100) <= temp_max), 
     }
 
     return alerts
 
+
 def format_alert_message(device_id: int, alerts: Dict[str, bool], timestamp: str) -> Dict[str, Any]:
     """
-    Format an alert message for broadcasting over WebSocket.
-
-    :param device_id: The ID of the device sending the telemetry.
-    :param alerts: Dictionary of triggered alerts from check_alerts().
-    :param timestamp: ISO formatted timestamp string of the telemetry.
-    :return: Dictionary representing the alert message to send to clients
+    Format alert dictionary into broadcast-ready message.
     """
     formatted = {"device_id": device_id, "timestamp": timestamp, "alerts": alerts}
     message = "Alerts triggered:"
@@ -35,10 +61,7 @@ def format_alert_message(device_id: int, alerts: Dict[str, bool], timestamp: str
     if alerts.get("cpu_alert", False):
         message += " CPU usage high,"
     if alerts.get("temperature_alert", False):
-        message += " temperature high"
-    if message.endswith(","):
-        message = message[:-1]
-    if message == "Alerts triggered:":
-        message += " None"
-    formatted["message"] = message 
+        message += " temperature high,"
+    message = message.rstrip(",") or "Alerts triggered: None"
+    formatted["message"] = message
     return formatted

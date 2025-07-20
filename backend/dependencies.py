@@ -18,19 +18,16 @@ async def get_current_user(token: str = Depends(oauth2_scheme), db=Depends(get_d
     # Get access token
     payload = decode_access_token(token)
     if not payload:
-        print("not payload")
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
     
     # Get user from token
     username = payload.get("sub")
     if not username:
-        print("not username")
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid username")
 
     # Search User table for someone with the user name
     user = db.query(User).filter(User.username == username).first()
     if user is None:
-        print("user is none")
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found")
     
     return user
