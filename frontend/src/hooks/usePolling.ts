@@ -53,38 +53,72 @@ export default function useTelemetry(deviceId: number) {
   useEffect(() => {
     if (!token) {
       console.log("not token");
+      console.log('returning');
       return;
     }
 
-    const ws = new WebSocket(`ws://localhost:8000/ws/telemetry?token=${"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhZG1pbiIsInJvbGUiOiJhZG1pbiIsImV4cCI6MTc1MzA1MTUwMH0.A7wYdkR4mFPTnMGN1_dNpIq1LAU6kezVGbdeTAynQBw"}`);
+    const ws = new WebSocket(`ws://localhost:8000/ws/telemetry?token=${token}`);
+
     wsRef.current = ws;
 
     ws.onopen = () => {
       console.log("WebSocket connected");
+      ws.send(
+        JSON.stringify({
+          device_id: deviceId,
+          timestamp: new Date().toISOString(),
+          temperature: 0,
+          battery: 0,
+          cpu_usage: 0,
+          speed: 0,
+        })
+      );
     };
 
+
+    // ws.onmessage = (event) => {
+    //   try {
+    //     const msg = JSON.parse(event.data);
+
+    //     // If it's a known alert format
+    //     if (msg.metric && msg.threshold) {
+    //       setAlertEvents((prev) => [msg, ...prev].slice(0, 10));
+    //       setCurrentMetrics((prev) => ({
+    //         ...prev,
+    //         lastAnomalyTime: msg.time || new Date().toISOString(),
+    //       }));
+    //     }
+
+    //     // If it's just telemetry received confirmation (can be ignored or logged)
+    //     if (typeof msg === "string" && msg.includes("Telemetry data received")) {
+    //       return;
+    //     }
+
+    //     // You can also process raw telemetry echo (optional)
+    //     // console.log("WS msg:", msg);
+    //   } catch (e) {
+    //     console.error("Failed to parse WS message", e);
+    //   }
+    // };
+
     ws.onmessage = (event) => {
+      let msg;
       try {
-        const msg = JSON.parse(event.data);
+        msg = JSON.parse(event.data);
+        console.log("received WS message: ", event.data);
+      } catch {
+        // Not JSON — could be a plain string message, just log or ignore
+        console.log("Received non-JSON WS message:", event.data);
+        return;
+      }
 
-        // If it's a known alert format
-        if (msg.metric && msg.threshold) {
-          setAlertEvents((prev) => [msg, ...prev].slice(0, 10));
-          setCurrentMetrics((prev) => ({
-            ...prev,
-            lastAnomalyTime: msg.time || new Date().toISOString(),
-          }));
-        }
-
-        // If it's just telemetry received confirmation (can be ignored or logged)
-        if (typeof msg === "string" && msg.includes("Telemetry data received")) {
-          return;
-        }
-
-        // You can also process raw telemetry echo (optional)
-        // console.log("WS msg:", msg);
-      } catch (e) {
-        console.error("Failed to parse WS message", e);
+      // Now process msg as JSON object
+      if (msg.metric && msg.threshold) {
+        setAlertEvents((prev) => [msg, ...prev].slice(0, 10));
+        setCurrentMetrics((prev) => ({
+          ...prev,
+          lastAnomalyTime: msg.time || new Date().toISOString(),
+        }));
       }
     };
 
@@ -99,6 +133,7 @@ export default function useTelemetry(deviceId: number) {
     return () => {
       ws.close();
     };
+    
   }, [token]);
 
   return { telemetryData, currentMetrics, alertEvents };

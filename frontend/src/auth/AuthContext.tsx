@@ -9,10 +9,23 @@ type AuthContextType = {
 export const AuthContext = createContext<AuthContextType | null>(null);
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
-  const [token, setToken] = useState<string | null>(null);
+  const [token, setToken] = useState<string | null>(() =>
+    localStorage.getItem("token") || import.meta.env.VITE_DEFAULT_TOKEN || null
+  );
+  console.log("Loaded token:", token);
 
-  const login = (newToken: string) => setToken(newToken);
-  const logout = () => setToken(null);
+  // const [token, setToken] = useState<string | null>(() => localStorage.getItem("token"));
+
+  const login = (newToken: string) => {
+    setToken(newToken);
+    localStorage.setItem("token", newToken);   // <-- add this
+  };
+
+  const logout = () => {
+    setToken(null);
+    localStorage.removeItem("token");          // <-- and this
+  };
+
 
   return (
     <AuthContext.Provider value={{ token, login, logout }}>
