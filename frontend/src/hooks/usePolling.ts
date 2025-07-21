@@ -101,43 +101,108 @@ export default function useTelemetry(deviceId: number) {
     //   }
     // };
 
+    // ws.onmessage = (event) => {
+    //   let msg;
+    //   try {
+    //     msg = JSON.parse(event.data);
+    //     console.log("received WS message: ", event.data)
+    //   } catch {
+    //     // Not JSON — could be a plain string message, just log or ignore
+    //     console.log("Received non-JSON WS message:", event.data);
+    //     return;
+    //   }
+
+    //   // Now process msg as JSON object
+    //   if (msg.metric && msg.threshold) {
+    //     setAlertEvents((prev) => [msg, ...prev].slice(0, 10));
+    //     setCurrentMetrics((prev) => ({
+    //       ...prev,
+    //       lastAnomalyTime: msg.time || new Date().toISOString(),
+    //     }));
+    //   }
+    // };
+
+    // ws.onmessage = (event) => {
+    //   let msg;
+    //   try {
+    //     msg = JSON.parse(event.data);
+    //     console.log("received WS message: ", event.data);
+    //   } catch {
+    //     console.log("Received non-JSON WS message:", event.data);
+    //     return;
+    //   }
+
+    //   if (msg.type === "telemetry") {
+    //     const numericTimestamp = new Date(msg.timestamp).getTime();
+
+    //     // Update telemetry data by appending the new data point
+    //     setTelemetryData((prevData) => ({
+    //       cpu_usage: [...prevData.cpu_usage, { timestamp: numericTimestamp, value: msg.cpu_usage }],
+    //       battery: [...prevData.battery, { timestamp: numericTimestamp, value: msg.battery }],
+    //       temperature: [...prevData.temperature, { timestamp: numericTimestamp, value: msg.temperature }],
+    //     }));
+
+    //     // Update current metrics for status cards
+    //     setCurrentMetrics({
+    //       cpu: msg.cpu_usage,
+    //       battery: msg.battery,
+    //       temperature: msg.temperature,
+    //       speed: msg.speed,
+    //       lastAnomalyTime: currentMetrics.lastAnomalyTime,
+    //     });
+    //   }
+
+    //   // Handle alerts if any
+    //   if (msg.metric && msg.threshold) {
+    //     setAlertEvents((prev) => [msg, ...prev].slice(0, 10));
+    //     setCurrentMetrics((prev) => ({
+    //       ...prev,
+    //       lastAnomalyTime: msg.time || new Date().toISOString(),
+    //     }));
+    //   }
+    // };
+
+
     ws.onmessage = (event) => {
       let msg;
       try {
         msg = JSON.parse(event.data);
-        console.log("received WS message: ", event.data);
+        console.log("received WS message: ", msg);
       } catch {
         console.log("Received non-JSON WS message:", event.data);
         return;
       }
 
-      if (msg.metric && msg.threshold) {
+      if (msg.type === "telemetry") {
+        const numericTimestamp = new Date(msg.timestamp).getTime();
+
+        // Update telemetry data by appending the new data point
+        setTelemetryData((prevData) => ({
+          cpu_usage: [...prevData.cpu_usage, { timestamp: numericTimestamp, value: msg.cpu_usage }],
+          battery: [...prevData.battery, { timestamp: numericTimestamp, value: msg.battery }],
+          temperature: [...prevData.temperature, { timestamp: numericTimestamp, value: msg.temperature }],
+        }));
+
+        // Update current metrics for status cards
+        setCurrentMetrics((prev) => ({
+          ...prev,
+          cpu: msg.cpu_usage,
+          battery: msg.battery,
+          temperature: msg.temperature,
+          speed: msg.speed,
+        }));
+      }
+
+      if (msg.type === "alert") {
         setAlertEvents((prev) => [msg, ...prev].slice(0, 10));
+
         setCurrentMetrics((prev) => ({
           ...prev,
           lastAnomalyTime: msg.time || new Date().toISOString(),
         }));
       }
-
-      if (msg.type === "telemetry") {
-        setTelemetryData((prev) => ({
-          cpu_usage: [...prev.cpu_usage, { timestamp: msg.timestamp, value: msg.cpu_usage }].slice(-50),
-          battery: [...prev.battery, { timestamp: msg.timestamp, value: msg.battery }].slice(-50),
-          temperature: [...prev.temperature, { timestamp: msg.timestamp, value: msg.temperature }].slice(-50),
-        }));
-
-        setCurrentMetrics((prev) => ({
-          cpu: msg.cpu_usage,
-          battery: msg.battery,
-          temperature: msg.temperature,
-          speed: msg.speed,
-          lastAnomalyTime: prev.lastAnomalyTime,
-        }));
-      }
     };
 
-
-    
 
     ws.onclose = () => {
       console.log("WebSocket closed");
@@ -150,7 +215,6 @@ export default function useTelemetry(deviceId: number) {
     return () => {
       ws.close();
     };
-    
   }, [token]);
 
   return { telemetryData, currentMetrics, alertEvents };

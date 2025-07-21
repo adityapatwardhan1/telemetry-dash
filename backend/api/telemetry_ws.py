@@ -27,6 +27,23 @@ def parse_timestamp(ts_str: str) -> datetime.datetime:
         return datetime.datetime.now(datetime.timezone.utc)
 
 
+import asyncio
+import json
+import datetime
+from fastapi import WebSocket, WebSocketDisconnect, status
+
+async def send_periodic_pings(websocket: WebSocket, interval_sec: int = 10):
+    try:
+        while True:
+            await asyncio.sleep(interval_sec)
+            # Sending an empty text message as a ping (can be customized)
+            print("sending ping")
+            await websocket.send_text("")
+    except Exception:
+        # Usually means websocket is closed or error; exit coroutine
+        pass
+
+
 @router.websocket("/ws/telemetry")
 async def telemetry_websocket(websocket: WebSocket):
     print("in telemetry_websocket")
@@ -55,9 +72,10 @@ async def telemetry_websocket(websocket: WebSocket):
     await websocket.accept()
     connected_clients.add(websocket)
 
+    ping_task = asyncio.create_task(send_periodic_pings(websocket))
+
     try:
         while True:
-            # Check if there's incoming data to receive
             try:
                 data = await asyncio.wait_for(websocket.receive_text(), timeout=1)
                 data_dict = json.loads(data)
@@ -78,13 +96,25 @@ async def telemetry_websocket(websocket: WebSocket):
                 db.add(new_telemetry)
                 db.commit()
                 print(f"Saved telemetry from {username}: {data_dict}")
+
+                # Check alerts after saving telemetry
+                alerts = check_alerts(data_dict, db)
+                if any(alerts.values()):
+                    alert_msg = format_alert_message(
+                        new_telemetry.device_id, alerts, raw_ts or timestamp.isoformat()
+                    )
+                    alert_msg["type"] = "alert"
+                    print("alert=",alert_msg)
+                    print("sending alert json")
+                    await websocket.send_json(alert_msg)
+
             except asyncio.TimeoutError:
-                # No data received within 1 second, that's fine — just proceed
+                # No data received in 1 sec; just continue
                 pass
             except Exception as e:
                 print(f"Error receiving/saving telemetry: {e}")
 
-            # Then send latest telemetry back every loop (every ~1 second)
+            # Send latest telemetry update
             latest = db.query(Telemetry).order_by(Telemetry.timestamp.desc()).first()
             if latest:
                 payload = {
@@ -97,7 +127,8 @@ async def telemetry_websocket(websocket: WebSocket):
                     "type": "telemetry",
                 }
                 await websocket.send_json(payload)
-                await asyncio.sleep(1)  # throttle sending frequency
+
+            await asyncio.sleep(1)  # throttle sending frequency
 
     except WebSocketDisconnect:
         print(f"Client {username} disconnected")
@@ -105,7 +136,172 @@ async def telemetry_websocket(websocket: WebSocket):
     except Exception as e:
         print("Error in websocket loop:", e)
     finally:
+        ping_task.cancel()
         db.close()
+
+
+# @router.websocket("/ws/telemetry")
+# async def telemetry_websocket(websocket: WebSocket):
+#     print("in telemetry_websocket")
+#     token = websocket.query_params.get("token")
+#     if not token:
+#         await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
+#         return
+
+#     payload = decode_access_token(token)
+#     if not payload:
+#         await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
+#         return
+
+#     username = payload.get("sub")
+#     if not username:
+#         await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
+#         return
+
+#     db = next(get_db())
+#     user = db.query(User).filter(User.username == username).first()
+#     if user is None:
+#         await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
+#         return
+
+#     print("accepting user")
+#     await websocket.accept()
+#     connected_clients.add(websocket)
+
+#     ping_task = asyncio.create_task(send_periodic_pings(websocket))
+
+#     try:
+#         while True:
+#             try:
+#                 data = await asyncio.wait_for(websocket.receive_text(), timeout=1)
+#                 data_dict = json.loads(data)
+#                 raw_ts = data_dict.get("timestamp")
+#                 timestamp = parse_timestamp(raw_ts) if raw_ts else datetime.datetime.now(datetime.timezone.utc)
+
+#                 new_telemetry = Telemetry(
+#                     device_id=data_dict.get("device_id", -1),
+#                     battery=data_dict.get("battery", 0.0),
+#                     temperature=data_dict.get("temperature", 0.0),
+#                     gps_lat=data_dict.get("gps_lat", ""),
+#                     gps_long=data_dict.get("gps_long", ""),
+#                     speed=data_dict.get("speed", 0.0),
+#                     cpu_usage=data_dict.get("cpu_usage", 0.0),
+#                     timestamp=timestamp,
+#                 )
+#                 db.add(new_telemetry)
+#                 db.commit()
+#                 print(f"Saved telemetry from {username}: {data_dict}")
+#             except asyncio.TimeoutError:
+#                 # No data received in 1 sec; just continue
+#                 pass
+#             except Exception as e:
+#                 print(f"Error receiving/saving telemetry: {e}")
+
+#             latest = db.query(Telemetry).order_by(Telemetry.timestamp.desc()).first()
+#             if latest:
+#                 payload = {
+#                     "device_id": latest.device_id,
+#                     "timestamp": latest.timestamp.isoformat(),
+#                     "battery": latest.battery,
+#                     "temperature": latest.temperature,
+#                     "cpu_usage": latest.cpu_usage,
+#                     "speed": latest.speed,
+#                     "type": "telemetry",
+#                 }
+#                 await websocket.send_json(payload)
+
+#             await asyncio.sleep(1)  # throttle sending frequency
+
+#     except WebSocketDisconnect:
+#         print(f"Client {username} disconnected")
+#         connected_clients.remove(websocket)
+#     except Exception as e:
+#         print("Error in websocket loop:", e)
+#     finally:
+#         ping_task.cancel()
+#         db.close()
+
+
+
+# @router.websocket("/ws/telemetry")
+# async def telemetry_websocket(websocket: WebSocket):
+#     print("in telemetry_websocket")
+#     token = websocket.query_params.get("token")
+#     if not token:
+#         await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
+#         return
+
+#     payload = decode_access_token(token)
+#     if not payload:
+#         await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
+#         return
+
+#     username = payload.get("sub")
+#     if not username:
+#         await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
+#         return
+
+#     db = next(get_db())
+#     user = db.query(User).filter(User.username == username).first()
+#     if user is None:
+#         await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
+#         return
+
+#     print("accepting user")
+#     await websocket.accept()
+#     connected_clients.add(websocket)
+
+#     try:
+#         while True:
+#             # Check if there's incoming data to receive
+#             try:
+#                 data = await asyncio.wait_for(websocket.receive_text(), timeout=1)
+#                 data_dict = json.loads(data)
+#                 raw_ts = data_dict.get("timestamp")
+#                 timestamp = parse_timestamp(raw_ts) if raw_ts else datetime.datetime.now(datetime.timezone.utc)
+
+#                 # Save telemetry data to DB
+#                 new_telemetry = Telemetry(
+#                     device_id=data_dict.get("device_id", -1),
+#                     battery=data_dict.get("battery", 0.0),
+#                     temperature=data_dict.get("temperature", 0.0),
+#                     gps_lat=data_dict.get("gps_lat", ""),
+#                     gps_long=data_dict.get("gps_long", ""),
+#                     speed=data_dict.get("speed", 0.0),
+#                     cpu_usage=data_dict.get("cpu_usage", 0.0),
+#                     timestamp=timestamp,
+#                 )
+#                 db.add(new_telemetry)
+#                 db.commit()
+#                 print(f"Saved telemetry from {username}: {data_dict}")
+#             except asyncio.TimeoutError:
+#                 # No data received within 1 second, that's fine — just proceed
+#                 pass
+#             except Exception as e:
+#                 print(f"Error receiving/saving telemetry: {e}")
+
+#             # Then send latest telemetry back every loop (every ~1 second)
+#             latest = db.query(Telemetry).order_by(Telemetry.timestamp.desc()).first()
+#             if latest:
+#                 payload = {
+#                     "device_id": latest.device_id,
+#                     "timestamp": latest.timestamp.isoformat(),
+#                     "battery": latest.battery,
+#                     "temperature": latest.temperature,
+#                     "cpu_usage": latest.cpu_usage,
+#                     "speed": latest.speed,
+#                     "type": "telemetry",
+#                 }
+#                 await websocket.send_json(payload)
+#                 await asyncio.sleep(1)  # throttle sending frequency
+
+#     except WebSocketDisconnect:
+#         print(f"Client {username} disconnected")
+#         connected_clients.remove(websocket)
+#     except Exception as e:
+#         print("Error in websocket loop:", e)
+#     finally:
+#         db.close()
 
         
 
