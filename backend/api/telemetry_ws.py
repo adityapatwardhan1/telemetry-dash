@@ -57,14 +57,35 @@ async def telemetry_websocket(websocket: WebSocket):
 
     try:
         while True:
-            await asyncio.sleep(2)  # Stream every 2 seconds
+            # Check if there's incoming data to receive
+            try:
+                data = await asyncio.wait_for(websocket.receive_text(), timeout=1)
+                data_dict = json.loads(data)
+                raw_ts = data_dict.get("timestamp")
+                timestamp = parse_timestamp(raw_ts) if raw_ts else datetime.datetime.now(datetime.timezone.utc)
 
-            latest = (
-                db.query(Telemetry)
-                .order_by(Telemetry.timestamp.desc())
-                .first()
-            )
-            print("latest is truthy")
+                # Save telemetry data to DB
+                new_telemetry = Telemetry(
+                    device_id=data_dict.get("device_id", -1),
+                    battery=data_dict.get("battery", 0.0),
+                    temperature=data_dict.get("temperature", 0.0),
+                    gps_lat=data_dict.get("gps_lat", ""),
+                    gps_long=data_dict.get("gps_long", ""),
+                    speed=data_dict.get("speed", 0.0),
+                    cpu_usage=data_dict.get("cpu_usage", 0.0),
+                    timestamp=timestamp,
+                )
+                db.add(new_telemetry)
+                db.commit()
+                print(f"Saved telemetry from {username}: {data_dict}")
+            except asyncio.TimeoutError:
+                # No data received within 1 second, that's fine — just proceed
+                pass
+            except Exception as e:
+                print(f"Error receiving/saving telemetry: {e}")
+
+            # Then send latest telemetry back every loop (every ~1 second)
+            latest = db.query(Telemetry).order_by(Telemetry.timestamp.desc()).first()
             if latest:
                 payload = {
                     "device_id": latest.device_id,
@@ -76,14 +97,76 @@ async def telemetry_websocket(websocket: WebSocket):
                     "type": "telemetry",
                 }
                 await websocket.send_json(payload)
+                await asyncio.sleep(1)  # throttle sending frequency
 
     except WebSocketDisconnect:
         print(f"Client {username} disconnected")
         connected_clients.remove(websocket)
     except Exception as e:
-        print("Error sending metrics:", e)
+        print("Error in websocket loop:", e)
     finally:
         db.close()
+
+        
+
+# @router.websocket("/ws/telemetry")
+# async def telemetry_websocket(websocket: WebSocket):
+#     print("in telemetry_websocket")
+#     token = websocket.query_params.get("token")
+#     if not token:
+#         await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
+#         return
+
+#     payload = decode_access_token(token)
+#     if not payload:
+#         await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
+#         return
+
+#     username = payload.get("sub")
+#     if not username:
+#         await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
+#         return
+
+#     db = next(get_db())
+#     user = db.query(User).filter(User.username == username).first()
+#     if user is None:
+#         await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
+#         return
+
+#     print("accepting user")
+#     await websocket.accept()
+#     connected_clients.add(websocket)
+
+#     try:
+#         while True:
+#             await asyncio.sleep(2)  # Stream every 2 seconds
+
+#             latest = (
+#                 db.query(Telemetry)
+#                 .order_by(Telemetry.timestamp.desc())
+#                 .first()
+#             )
+#             print("latest=", latest)
+#             print("latest is truthy")
+#             if latest:
+#                 payload = {
+#                     "device_id": latest.device_id,
+#                     "timestamp": latest.timestamp.isoformat(),
+#                     "battery": latest.battery,
+#                     "temperature": latest.temperature,
+#                     "cpu_usage": latest.cpu_usage,
+#                     "speed": latest.speed,
+#                     "type": "telemetry",
+#                 }
+#                 await websocket.send_json(payload)
+
+#     except WebSocketDisconnect:
+#         print(f"Client {username} disconnected")
+#         connected_clients.remove(websocket)
+#     except Exception as e:
+#         print("Error sending metrics:", e)
+#     finally:
+#         db.close()
 
 
 # @router.websocket("/ws/telemetry")

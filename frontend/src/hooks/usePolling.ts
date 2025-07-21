@@ -107,12 +107,10 @@ export default function useTelemetry(deviceId: number) {
         msg = JSON.parse(event.data);
         console.log("received WS message: ", event.data);
       } catch {
-        // Not JSON — could be a plain string message, just log or ignore
         console.log("Received non-JSON WS message:", event.data);
         return;
       }
 
-      // Now process msg as JSON object
       if (msg.metric && msg.threshold) {
         setAlertEvents((prev) => [msg, ...prev].slice(0, 10));
         setCurrentMetrics((prev) => ({
@@ -120,7 +118,26 @@ export default function useTelemetry(deviceId: number) {
           lastAnomalyTime: msg.time || new Date().toISOString(),
         }));
       }
+
+      if (msg.type === "telemetry") {
+        setTelemetryData((prev) => ({
+          cpu_usage: [...prev.cpu_usage, { timestamp: msg.timestamp, value: msg.cpu_usage }].slice(-50),
+          battery: [...prev.battery, { timestamp: msg.timestamp, value: msg.battery }].slice(-50),
+          temperature: [...prev.temperature, { timestamp: msg.timestamp, value: msg.temperature }].slice(-50),
+        }));
+
+        setCurrentMetrics((prev) => ({
+          cpu: msg.cpu_usage,
+          battery: msg.battery,
+          temperature: msg.temperature,
+          speed: msg.speed,
+          lastAnomalyTime: prev.lastAnomalyTime,
+        }));
+      }
     };
+
+
+    
 
     ws.onclose = () => {
       console.log("WebSocket closed");

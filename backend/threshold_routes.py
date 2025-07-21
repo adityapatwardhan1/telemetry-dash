@@ -34,8 +34,8 @@ def set_threshold(threshold_data: ThresholdCreate, db: Session = Depends(get_db)
     else:
         new_threshold = Threshold(**threshold_data.dict())
         db.add(new_threshold)
-
-    db.commit()
+        db.commit()
+        
     return existing or new_threshold
 
 @router.get("/thresholds/{device_id}/{metric}", response_model=ThresholdOut)
