@@ -11,6 +11,7 @@ export type AlertEvent = {
   metric: string;
   value: number;
   threshold: string;
+  message?: string;
 };
 
 type TelemetryData = {
@@ -52,138 +53,37 @@ export default function useTelemetry(deviceId: number) {
 
   useEffect(() => {
     if (!token) {
-      console.log("not token");
-      console.log('returning');
+      console.log("No token, skipping WebSocket connection");
       return;
     }
 
     const ws = new WebSocket(`ws://localhost:8000/ws/telemetry?token=${token}`);
-
     wsRef.current = ws;
 
     ws.onopen = () => {
-      console.log("WebSocket connected");
-      ws.send(
-        JSON.stringify({
-          device_id: deviceId,
-          timestamp: new Date().toISOString(),
-          temperature: 0,
-          battery: 0,
-          cpu_usage: 0,
-          speed: 0,
-        })
-      );
+      console.log("WebSocket connected to telemetry endpoint");
+      // Dashboard does not send telemetry data here, only listens.
     };
-
-
-    // ws.onmessage = (event) => {
-    //   try {
-    //     const msg = JSON.parse(event.data);
-
-    //     // If it's a known alert format
-    //     if (msg.metric && msg.threshold) {
-    //       setAlertEvents((prev) => [msg, ...prev].slice(0, 10));
-    //       setCurrentMetrics((prev) => ({
-    //         ...prev,
-    //         lastAnomalyTime: msg.time || new Date().toISOString(),
-    //       }));
-    //     }
-
-    //     // If it's just telemetry received confirmation (can be ignored or logged)
-    //     if (typeof msg === "string" && msg.includes("Telemetry data received")) {
-    //       return;
-    //     }
-
-    //     // You can also process raw telemetry echo (optional)
-    //     // console.log("WS msg:", msg);
-    //   } catch (e) {
-    //     console.error("Failed to parse WS message", e);
-    //   }
-    // };
-
-    // ws.onmessage = (event) => {
-    //   let msg;
-    //   try {
-    //     msg = JSON.parse(event.data);
-    //     console.log("received WS message: ", event.data)
-    //   } catch {
-    //     // Not JSON — could be a plain string message, just log or ignore
-    //     console.log("Received non-JSON WS message:", event.data);
-    //     return;
-    //   }
-
-    //   // Now process msg as JSON object
-    //   if (msg.metric && msg.threshold) {
-    //     setAlertEvents((prev) => [msg, ...prev].slice(0, 10));
-    //     setCurrentMetrics((prev) => ({
-    //       ...prev,
-    //       lastAnomalyTime: msg.time || new Date().toISOString(),
-    //     }));
-    //   }
-    // };
-
-    // ws.onmessage = (event) => {
-    //   let msg;
-    //   try {
-    //     msg = JSON.parse(event.data);
-    //     console.log("received WS message: ", event.data);
-    //   } catch {
-    //     console.log("Received non-JSON WS message:", event.data);
-    //     return;
-    //   }
-
-    //   if (msg.type === "telemetry") {
-    //     const numericTimestamp = new Date(msg.timestamp).getTime();
-
-    //     // Update telemetry data by appending the new data point
-    //     setTelemetryData((prevData) => ({
-    //       cpu_usage: [...prevData.cpu_usage, { timestamp: numericTimestamp, value: msg.cpu_usage }],
-    //       battery: [...prevData.battery, { timestamp: numericTimestamp, value: msg.battery }],
-    //       temperature: [...prevData.temperature, { timestamp: numericTimestamp, value: msg.temperature }],
-    //     }));
-
-    //     // Update current metrics for status cards
-    //     setCurrentMetrics({
-    //       cpu: msg.cpu_usage,
-    //       battery: msg.battery,
-    //       temperature: msg.temperature,
-    //       speed: msg.speed,
-    //       lastAnomalyTime: currentMetrics.lastAnomalyTime,
-    //     });
-    //   }
-
-    //   // Handle alerts if any
-    //   if (msg.metric && msg.threshold) {
-    //     setAlertEvents((prev) => [msg, ...prev].slice(0, 10));
-    //     setCurrentMetrics((prev) => ({
-    //       ...prev,
-    //       lastAnomalyTime: msg.time || new Date().toISOString(),
-    //     }));
-    //   }
-    // };
-
 
     ws.onmessage = (event) => {
       let msg;
       try {
         msg = JSON.parse(event.data);
-        console.log("received WS message: ", msg);
+        console.log("Received WS message:", msg);
       } catch {
-        console.log("Received non-JSON WS message:", event.data);
+        console.log("Non-JSON WS message:", event.data);
         return;
       }
 
       if (msg.type === "telemetry") {
         const numericTimestamp = new Date(msg.timestamp).getTime();
 
-        // Update telemetry data by appending the new data point
-        setTelemetryData((prevData) => ({
-          cpu_usage: [...prevData.cpu_usage, { timestamp: numericTimestamp, value: msg.cpu_usage }],
-          battery: [...prevData.battery, { timestamp: numericTimestamp, value: msg.battery }],
-          temperature: [...prevData.temperature, { timestamp: numericTimestamp, value: msg.temperature }],
+        setTelemetryData((prev) => ({
+          cpu_usage: [...prev.cpu_usage, { timestamp: numericTimestamp, value: msg.cpu_usage }],
+          battery: [...prev.battery, { timestamp: numericTimestamp, value: msg.battery }],
+          temperature: [...prev.temperature, { timestamp: numericTimestamp, value: msg.temperature }],
         }));
 
-        // Update current metrics for status cards
         setCurrentMetrics((prev) => ({
           ...prev,
           cpu: msg.cpu_usage,
@@ -194,15 +94,31 @@ export default function useTelemetry(deviceId: number) {
       }
 
       if (msg.type === "alert") {
-        setAlertEvents((prev) => [msg, ...prev].slice(0, 10));
+        const { alerts, timestamp } = msg;
+        console.log("message of type alert");
+        console.log("alerts =", alerts);
+        console.log("msg =", msg);
+        const triggeredMetrics = Object.entries(alerts)
+          .filter(([key, val]) => key.endsWith("_alert") && val === true)
+          .map(([key]) => key.replace("_alert", ""));
 
-        setCurrentMetrics((prev) => ({
-          ...prev,
-          lastAnomalyTime: msg.time || new Date().toISOString(),
-        }));
+        triggeredMetrics.forEach((metric) => {
+          const alert: AlertEvent = {
+            time: timestamp,
+            metric,
+            value: alerts[`${metric}_value`],
+            threshold: `${alerts[`${metric}_bounds`][0]} - ${alerts[`${metric}_bounds`][1]}`,
+            message: msg.message,
+          };
+
+          setAlertEvents((prev) => [alert, ...prev].slice(0, 10));
+          setCurrentMetrics((prev) => ({
+            ...prev,
+            lastAnomalyTime: timestamp,
+          }));
+        });
       }
     };
-
 
     ws.onclose = () => {
       console.log("WebSocket closed");
@@ -219,4 +135,3 @@ export default function useTelemetry(deviceId: number) {
 
   return { telemetryData, currentMetrics, alertEvents };
 }
-

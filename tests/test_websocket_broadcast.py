@@ -6,7 +6,7 @@ import threading
 
 from fastapi.testclient import TestClient
 from backend.main import app
-from backend.api.telemetry_ws import broadcast_telemetry
+from backend.telemetry_ws import broadcast_telemetry
 from backend.db import SessionLocal, get_db
 from backend.models import User
 from backend.auth import hash_password as get_password_hash
