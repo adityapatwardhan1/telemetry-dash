@@ -86,18 +86,60 @@ async def device_websocket(websocket: WebSocket):
                 print("📤 Broadcasting telemetry")
                 await broadcast_telemetry(telemetry_payload)
 
+                # alerts = check_alerts(telemetry_payload, db)
+                # for alert in alerts:
+                #     alert_msg = format_alert_message(alert, telemetry_payload, new_telemetry.timestamp)
+                #     alert_payload = {
+                #         "type": "alert",
+                #         "device_id": new_telemetry.device_id,
+                #         "timestamp": new_telemetry.timestamp.isoformat(),
+                #         "message": alert_msg,
+                #         "alerts": alert  # or structured alert info
+                #     }
+                #     print("📤 Broadcasting alert:", alert_msg)
+                #     await broadcast_telemetry(alert_payload)
+
+                # alerts = check_alerts(telemetry_payload, db)
+                # for alert in alerts:
+                #     print("alert=",alert)
+                #     metric = alert["type"]
+                #     alert_key = f"{metric}_alert"
+                #     value_key = f"{metric}_value"
+                #     bounds_key = f"{metric}_bounds"
+
+                #     structured_alert = {
+                #         alert_key: True,
+                #         value_key: alert["value"],
+                #         bounds_key: alert["bounds"]
+                #     }
+
+                #     alert_msg = format_alert_message(alert, telemetry_payload, new_telemetry.timestamp)
+                #     alert_payload = {
+                #         "type": "alert",
+                #         "device_id": new_telemetry.device_id,
+                #         "timestamp": new_telemetry.timestamp.isoformat(),
+                #         "message": alert_msg,
+                #         "alerts": structured_alert
+                #     }
+
+                #     print("📤 Broadcasting alert:", alert_msg)
+                #     await broadcast_telemetry(alert_payload)
+
                 alerts = check_alerts(telemetry_payload, db)
-                for alert in alerts:
-                    alert_msg = format_alert_message(alert, telemetry_payload, new_telemetry.timestamp)
+
+                if any(alerts.get(f"{metric}_alert") for metric in ["battery", "cpu_usage", "temperature"]):
+                    alert_msg = format_alert_message(alerts, telemetry_payload, new_telemetry.timestamp)
                     alert_payload = {
                         "type": "alert",
                         "device_id": new_telemetry.device_id,
                         "timestamp": new_telemetry.timestamp.isoformat(),
                         "message": alert_msg,
-                        "alerts": alert  # or structured alert info
+                        "alerts": alerts,  # ✅ send the whole alert object
                     }
                     print("📤 Broadcasting alert:", alert_msg)
                     await broadcast_telemetry(alert_payload)
+
+
 
             except asyncio.TimeoutError:
                 print("⏱ Device timeout, waiting for new data...")
