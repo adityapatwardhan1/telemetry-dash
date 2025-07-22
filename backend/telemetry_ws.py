@@ -38,10 +38,12 @@ def make_json_safe(data: dict):
 
 async def send_json_safe(websocket: WebSocket, message: dict):
     try:
-        print("message =", message)
         await websocket.send_json(make_json_safe(message))
-    except WebSocketDisconnect:
-        pass
+    except Exception as e:
+        print("Client disconnected unexpectedly")
+        if websocket in connected_clients:
+            connected_clients.remove(websocket)
+
 
 async def broadcast_telemetry(message: dict):
     await asyncio.gather(*(send_json_safe(ws, message) for ws in connected_clients))
