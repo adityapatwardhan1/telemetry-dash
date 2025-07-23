@@ -1,6 +1,7 @@
 import React, { useState } from "react";
-import ThresholdForm from "../components/ThresholdForm"
-import ThresholdTable from "../components/ThresholdTable"
+import ThresholdForm from "../components/ThresholdForm";
+import ThresholdTable from "../components/ThresholdTable";
+import Header from "../components/Header";
 
 type Threshold = {
   metric: string;

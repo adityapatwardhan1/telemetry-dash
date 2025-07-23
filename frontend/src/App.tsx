@@ -6,6 +6,8 @@ import { AuthProvider, AuthContext } from "./auth/AuthContext";
 import { useContext } from "react";
 import './App.css'
 import './index.css';
+import Navbar from "./components/Navbar";
+
 
 function RequireAdmin({ children }: { children: React.ReactNode }) {
   const auth = useContext(AuthContext);
@@ -29,27 +31,66 @@ function RequireAdmin({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
-
-
 export default function App() {
   return (
     <AuthProvider>
       <BrowserRouter>
-        <Routes>
-          <Route path="/login" element={<Login />} />
-          <Route path="/dashboard" element={<Dashboard />} />
-          <Route
-            path="/thresholds"
-            element={
-              <RequireAdmin>
-                <Thresholds />
-              </RequireAdmin>
-            }
-          />
-          <Route path="/" element={<Navigate to="/login" replace />} />
-          <Route path="*" element={<div>404 Not Found</div>} />
-        </Routes>
+        <Navbar /> {/* Always visible when user is logged in */}
+        <div className="pt-20 px-4"> {/* pt-20 creates space for fixed nav */}
+          <Routes>
+            <Route path="/login" element={<Login />} />
+            <Route path="/dashboard" element={<Dashboard />} />
+            <Route
+              path="/thresholds"
+              element={
+                <RequireAdmin>
+                  <Thresholds />
+                </RequireAdmin>
+              }
+            />
+            <Route
+              path="/"
+              element={
+                <AuthContext.Consumer>
+                  {(auth) =>
+                    auth?.user ? (
+                      <Navigate to="/dashboard" replace />
+                    ) : (
+                      <Navigate to="/login" replace />
+                    )
+                  }
+                </AuthContext.Consumer>
+              }
+            />
+            <Route path="*" element={<div>404 Not Found</div>} />
+          </Routes>
+        </div>
       </BrowserRouter>
     </AuthProvider>
   );
 }
+
+
+
+// export default function App() {
+//   return (
+//     <AuthProvider>
+//       <BrowserRouter>
+//         <Routes>
+//           <Route path="/login" element={<Login />} />
+//           <Route path="/dashboard" element={<Dashboard />} />
+//           <Route
+//             path="/thresholds"
+//             element={
+//               <RequireAdmin>
+//                 <Thresholds />
+//               </RequireAdmin>
+//             }
+//           />
+//           <Route path="/" element={<Navigate to="/login" replace />} />
+//           <Route path="*" element={<div>404 Not Found</div>} />
+//         </Routes>
+//       </BrowserRouter>
+//     </AuthProvider>
+//   );
+// }

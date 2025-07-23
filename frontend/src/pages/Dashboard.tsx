@@ -3,6 +3,7 @@ import Graph from "../components/Graph";
 import StatusCard from "../components/StatusCard";
 import EventTable from "../components/EventTable";
 import useTelemetry from "../hooks/usePolling";
+import Header from "../components/Header";
 
 export default function Dashboard() {
   const { telemetryData, alertEventsByDevice, currentMetricsByDevice } = useTelemetry();
@@ -18,6 +19,7 @@ export default function Dashboard() {
 
   return (
     <div>
+      {/* <Header /> */}
       <h1>System Telemetry</h1>
 
       <label htmlFor="device-select">Select Device:</label>
