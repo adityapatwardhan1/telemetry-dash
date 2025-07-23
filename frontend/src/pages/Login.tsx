@@ -14,11 +14,10 @@ export default function Login() {
     try {
       const res = await axios.post("http://localhost:8000/api/login", { username, password });
 
-      // const res = await axios.post("/api/login", { username, password });
       const token = res.data.access_token;
 
       if (auth) {
-        auth.login(token); // ✅ use login() from context
+        auth.login(token);
       }
 
       navigate("/dashboard"); // or wherever

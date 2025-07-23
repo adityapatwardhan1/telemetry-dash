@@ -12,9 +12,6 @@ export default function Dashboard() {
 
   const [selectedDeviceId, setSelectedDeviceId] = useState(deviceIds[0] || "");
 
-  // If you want multi-line graphs for multiple devices, keep selectedDeviceId[] array
-  // or for simplicity, start with single selection
-
   if (deviceIds.length === 0) {
     return <div>Loading telemetry data...</div>;
   }

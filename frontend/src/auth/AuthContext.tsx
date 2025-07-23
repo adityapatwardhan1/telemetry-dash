@@ -1,109 +1,58 @@
-// import React, { createContext, useContext, useState } from "react";
-
-// // type AuthContextType = {
-// //   token: string | null;
-// //   login: (token: string) => void;
-// //   logout: () => void;
-// // };
-
-// type User = {
-//   id: number;
-//   username: string;
-//   isAdmin: boolean;
-// };
-
-// type AuthContextType = {
-//   token: string | null;
-//   user: User | null;
-//   login: (token: string, user: User) => void;
-//   logout: () => void;
-// };
-
-// export const AuthContext = createContext<AuthContextType | null>(null);
-
-// export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
-//   const [token, setToken] = useState<string | null>(() =>
-//     localStorage.getItem("token") || import.meta.env.VITE_DEFAULT_TOKEN || null
-//   );
-//   console.log("Loaded token:", token);
-
-//   const [user, setUser] = useState<User | null>(null);
-
-//   // const [token, setToken] = useState<string | null>(() => localStorage.getItem("token"));
-
-
-//   // return (
-//   //   <AuthContext.Provider value={{ token, login, logout }}>
-//   //     {children}
-//   //   </AuthContext.Provider>
-//   // );
-//   const login = (token: string, userData: User) => {
-//     setToken(token);
-//     setUser(userData);
-//   };
-
-//   const logout = () => {
-//     setToken(null);
-//     setUser(null);
-//   };
-
-//   // Provide user and token in context value:
-//   <AuthContext.Provider value={{ token, user, login, logout }}>
-//     {children}
-//   </AuthContext.Provider>
-// };
-
-// export const useAuth = () => {
-//   const ctx = useContext(AuthContext);
-//   if (!ctx) throw new Error("useAuth must be used inside AuthProvider");
-//   return ctx;
-// };
-
-
-import React, { createContext, useContext, useState } from "react";
+import React, { createContext, useEffect, useState } from "react";
+import { jwtDecode } from "jwt-decode";
 
 type User = {
-  id: number;
-  username: string;
-  isAdmin: boolean;
+  sub: string;
+  role: string;
+  exp: number;
 };
 
 type AuthContextType = {
   token: string | null;
   user: User | null;
-  login: (token: string, user: User) => void;
+  loading: boolean;
+  login: (token: string) => void;
   logout: () => void;
 };
 
-export const AuthContext = createContext<AuthContextType | null>(null);
+export const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
-  const [token, setToken] = useState<string | null>(() =>
-    localStorage.getItem("token") || import.meta.env.VITE_DEFAULT_TOKEN || null
-  );
+  const [token, setToken] = useState<string | null>(null);
   const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  const login = (newToken: string, newUser: User) => {
-    setToken(newToken);
-    setUser(newUser);
+  useEffect(() => {
+    const storedToken = localStorage.getItem("token");
+    if (storedToken) {
+      try {
+        const decoded: any = jwtDecode(storedToken);
+        setUser(decoded);
+        setToken(storedToken);
+      } catch (err) {
+        console.error("Invalid token in localStorage");
+        localStorage.removeItem("token");
+      }
+    }
+    setLoading(false);
+  }, []);
+
+  const login = (newToken: string) => {
     localStorage.setItem("token", newToken);
+    setToken(newToken);
+    const decoded: any = jwtDecode(newToken);
+    setUser(decoded);
   };
 
   const logout = () => {
+    localStorage.removeItem("token");
     setToken(null);
     setUser(null);
-    localStorage.removeItem("token");
   };
 
   return (
-    <AuthContext.Provider value={{ token, user, login, logout }}>
+    <AuthContext.Provider value={{ token, user, loading, login, logout }}>
       {children}
     </AuthContext.Provider>
   );
-};
-
-export const useAuth = () => {
-  const ctx = useContext(AuthContext);
-  if (!ctx) throw new Error("useAuth must be used inside AuthProvider");
-  return ctx;
 };

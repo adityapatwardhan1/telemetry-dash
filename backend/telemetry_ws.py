@@ -85,7 +85,7 @@ async def device_websocket(websocket: WebSocket):
                     "type": "telemetry",
                 }
 
-                print("📤 Broadcasting telemetry")
+                # print("📤 Broadcasting telemetry")
                 await broadcast_telemetry(telemetry_payload)
 
                 # alerts = check_alerts(telemetry_payload, db)
@@ -127,19 +127,49 @@ async def device_websocket(websocket: WebSocket):
                 #     print("📤 Broadcasting alert:", alert_msg)
                 #     await broadcast_telemetry(alert_payload)
 
+                # alerts = check_alerts(telemetry_payload, db)
+
+                # if any(alerts.get(f"{metric}_alert") for metric in ["battery", "cpu_usage", "temperature"]):
+                #     alert_msg = format_alert_message(alerts, telemetry_payload, new_telemetry.timestamp)
+                #     alert_payload = {
+                #         "type": "alert",
+                #         "device_id": new_telemetry.device_id,
+                #         "timestamp": new_telemetry.timestamp.isoformat(),
+                #         "message": alert_msg,
+                #         "alerts": alerts,  # ✅ send the whole alert object
+                #     }
+                #     print("📤 Broadcasting alert:", alert_msg)
+                #     await broadcast_telemetry(alert_payload)
+
                 alerts = check_alerts(telemetry_payload, db)
 
+                # Check if any alert is true to broadcast
                 if any(alerts.get(f"{metric}_alert") for metric in ["battery", "cpu_usage", "temperature"]):
                     alert_msg = format_alert_message(alerts, telemetry_payload, new_telemetry.timestamp)
+
+                    # Build a flattened alerts dict with keys per metric
+                    structured_alert = {}
+                    for metric in ["battery", "cpu_usage", "temperature"]:
+                        alert_key = f"{metric}_alert"
+                        value_key = f"{metric}_value"
+                        bounds_key = f"{metric}_bounds"
+
+                        # Defensive fallback if keys missing
+                        structured_alert[alert_key] = alerts.get(alert_key, False)
+                        structured_alert[value_key] = alerts.get(value_key, None)
+                        structured_alert[bounds_key] = alerts.get(bounds_key, None)
+
                     alert_payload = {
                         "type": "alert",
                         "device_id": new_telemetry.device_id,
                         "timestamp": new_telemetry.timestamp.isoformat(),
                         "message": alert_msg,
-                        "alerts": alerts,  # ✅ send the whole alert object
+                        "alerts": structured_alert,  # flattened, consistent structure
                     }
-                    print("📤 Broadcasting alert:", alert_msg)
+
+                    # print("📤 Broadcasting alert:", alert_payload)
                     await broadcast_telemetry(alert_payload)
+
 
 
 
