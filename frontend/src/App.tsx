@@ -69,28 +69,3 @@ export default function App() {
     </AuthProvider>
   );
 }
-
-
-
-// export default function App() {
-//   return (
-//     <AuthProvider>
-//       <BrowserRouter>
-//         <Routes>
-//           <Route path="/login" element={<Login />} />
-//           <Route path="/dashboard" element={<Dashboard />} />
-//           <Route
-//             path="/thresholds"
-//             element={
-//               <RequireAdmin>
-//                 <Thresholds />
-//               </RequireAdmin>
-//             }
-//           />
-//           <Route path="/" element={<Navigate to="/login" replace />} />
-//           <Route path="*" element={<div>404 Not Found</div>} />
-//         </Routes>
-//       </BrowserRouter>
-//     </AuthProvider>
-//   );
-// }
