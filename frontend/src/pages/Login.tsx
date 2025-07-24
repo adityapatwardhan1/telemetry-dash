@@ -29,7 +29,7 @@ export default function Login() {
   return (
     <div className="min-h-screen flex items-center justify-center">
       <form onSubmit={handleLogin} className="space-y-4">
-        <h2 className="text-xl font-semibold">Telemon Login</h2>
+        <h2 className="text-xl font-semibold">TeleDash Login</h2>
         <input
           type="text"
           placeholder="Username"

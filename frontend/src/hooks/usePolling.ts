@@ -1,12 +1,13 @@
 import { useState, useEffect, useRef, useContext } from "react";
 import { AuthContext } from "../auth/AuthContext";
+import { jwtDecode } from "jwt-decode";
 
 export type MetricPoint = {
   timestamp: number;
   value: number;
 };
 
-type AlertEvent = {
+export type AlertEvent = {
   time: string;
   metric: string;
   value: number;
@@ -51,10 +52,26 @@ export default function useTelemetry() {
   const wsRef = useRef<WebSocket | null>(null);
 
   useEffect(() => {
+
     if (!token) {
       console.log("No token, skipping WebSocket connection");
       return;
     }
+
+    try {
+      const decoded: any = jwtDecode(token);
+      const now = Date.now() / 1000;
+      if (decoded.exp < now) {
+        console.warn("Token expired, skipping WebSocket connection");
+        localStorage.removeItem("token");
+        return;
+      }
+    } catch (err) {
+      console.error("Failed to decode token, skipping WebSocket connection");
+      localStorage.removeItem("token");
+      return;
+    }
+
 
     let ws: WebSocket;
     let reconnectTimeout: NodeJS.Timeout;

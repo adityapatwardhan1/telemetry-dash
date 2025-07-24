@@ -11,6 +11,7 @@ export default function Header() {
     auth?.logout();
     navigate("/login");
   };
+  
 
   return (
     <header className="flex justify-between items-center p-4 bg-gray-100 shadow">

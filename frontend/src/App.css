@@ -1,42 +1,183 @@
+/* Root container */
 #root {
-  max-width: 1280px;
+  max-width: 1400px;
   margin: 0 auto;
-  padding: 2rem;
+  padding: 1rem 2rem;
+  text-align: left;
+  min-height: 100vh;
+  box-sizing: border-box;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background-color: #121212; /* dark background */
+  color: #e0e0e0; /* light text */
+  
+  /* Leave space for fixed navbar */
+  padding-top: 80px;
+}
+
+/* Navbar styling */
+.navbar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 64px;
+  background-color: #1f1f1f; /* dark navbar background */
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.8);
+  border-radius: 0 0 8px 8px;
+  padding: 0 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  z-index: 50;
+  color: #e0e0e0;
+}
+
+/* Title centered */
+.navbar-title {
+  flex-grow: 1;
   text-align: center;
+  font-weight: 600;
+  font-size: 1.25rem;
+  letter-spacing: 0.05em;
+  user-select: none;
 }
 
-.logo {
-  height: 6em;
-  padding: 1.5em;
-  will-change: filter;
-  transition: filter 300ms;
-}
-.logo:hover {
-  filter: drop-shadow(0 0 2em #646cffaa);
-}
-.logo.react:hover {
-  filter: drop-shadow(0 0 2em #61dafbaa);
+/* Right buttons container */
+.navbar-buttons {
+  display: flex;
+  gap: 1.5rem;
+  align-items: center;
 }
 
-@keyframes logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
+/* Navbar links styling */
+.nav-link {
+  color: #cbd5e1; /* light slate */
+  text-decoration: none;
+  font-weight: 500;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  transition: background-color 0.2s ease-in-out, color 0.2s ease-in-out;
+  white-space: nowrap;
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  a:nth-of-type(2) .logo {
-    animation: logo-spin infinite 20s linear;
-  }
+.nav-link:hover {
+  background-color: #374151; /* dark gray hover */
+  color: #f3f4f6; /* lighter text */
 }
 
-.card {
-  padding: 2em;
+/* Logout button styling */
+.btn-logout {
+  background-color: #dc2626; /* red-600 */
+  color: white;
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 0.2s ease-in-out;
+  font-weight: 600;
 }
 
-.read-the-docs {
-  color: #888;
+.btn-logout:hover {
+  background-color: #b91c1c; /* darker red */
+}
+
+/* Alert table styles for dark theme */
+.alert-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0 8px; /* vertical spacing between rows */
+  margin-top: 1rem;
+  font-size: 0.95rem;
+  color: #e0e0e0;
+}
+
+/* Header row */
+.alert-table th {
+  background-color: #2d2d2d;
+  font-weight: 700;
+  padding: 0.75rem 1rem;
+  text-align: left;
+  border-bottom: 2px solid #444;
+  user-select: none;
+}
+
+/* Data cells */
+.alert-table td {
+  background-color: #1f1f1f;
+  padding: 0.75rem 1rem;
+  border-left: 1px solid #444;
+  border-right: 1px solid #444;
+  vertical-align: middle;
+}
+
+/* Rounded corners on first and last td in each row */
+.alert-table tr td:first-child {
+  border-top-left-radius: 6px;
+  border-bottom-left-radius: 6px;
+}
+
+.alert-table tr td:last-child {
+  border-top-right-radius: 6px;
+  border-bottom-right-radius: 6px;
+}
+
+/* Hover effect on rows */
+.alert-table tr:hover td {
+  background-color: #333333;
+  cursor: default;
+}
+
+/* Wrapper div for table padding and shadow */
+.alert-table-wrapper {
+  overflow-x: auto;
+  background-color: #1f1f1f;
+  padding: 1rem;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.8);
+  margin-top: 1rem;
+}
+
+/* Table base styles */
+.alert-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0 8px; /* space between rows */
+  color: #e0e0e0;
+  font-size: 0.95rem;
+  user-select: none;
+}
+
+/* Table header */
+.alert-table th {
+  background-color: #2d2d2d;
+  font-weight: 700;
+  padding: 0.75rem 1rem;
+  text-align: left;
+  border-bottom: 2px solid #444;
+}
+
+/* Table cells */
+.alert-table td {
+  background-color: #121212;
+  padding: 0.75rem 1rem;
+  border-left: 1px solid #444;
+  border-right: 1px solid #444;
+  vertical-align: middle;
+}
+
+/* Rounded corners on first and last cells of each row */
+.alert-table tr td:first-child {
+  border-top-left-radius: 8px;
+  border-bottom-left-radius: 8px;
+}
+
+.alert-table tr td:last-child {
+  border-top-right-radius: 8px;
+  border-bottom-right-radius: 8px;
+}
+
+/* Hover effect on rows */
+.alert-table tr:hover td {
+  background-color: #333333;
+  cursor: default;
 }
