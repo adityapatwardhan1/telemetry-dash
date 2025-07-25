@@ -28,32 +28,24 @@ A real-time dashboard for visualizing system telemetry from multiple (simulated)
 
 ### WebSocket Endpoints
 
-/ws/device
+/ws/device:
 Receives real-time telemetry from devices and broadcasts alerts when thresholds are breached.
 
-/ws/telemetry?token=...
+/ws/telemetry?token=...:
 Secure WebSocket for dashboards to receive live telemetry and alert updates.
-
-### Telemetry Routes
-
-GET /api/telemetry/recent/{device_id}
-Returns the limit (default 20) most recent telemetry records for a device.
-
-GET /api/telemetry/recent_by_time/{device_id}?minutes=X
-Returns all telemetry data from the past X minutes (default 5) for the device.
 
 ### Threshold Routes
 
-GET /api/thresholds
+GET /api/thresholds:
 Returns all thresholds for all devices.
 
-GET /api/thresholds/{device_id}
+GET /api/thresholds/{device_id}:
 Returns all thresholds for a specific device.
 
-GET /api/thresholds/{device_id}/{metric}
+GET /api/thresholds/{device_id}/{metric}:
 Returns the threshold for a specific device and metric.
 
-POST /api/thresholds
+POST /api/thresholds:
 Creates or updates a threshold.
 Body:
 
