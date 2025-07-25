@@ -91,32 +91,6 @@ export default function Graph({
             isAnimationActive={false}
           />
 
-          {threshold && (
-            <>
-              <ReferenceLine
-                y={threshold.min}
-                stroke="#ef4444"
-                strokeDasharray="4 4"
-                label={{
-                  value: `Min: ${threshold.min}${yAxisLabel}`,
-                  position: "insideTopLeft",
-                  fill: "#ef4444",
-                  fontSize: 12,
-                }}
-              />
-              <ReferenceLine
-                y={threshold.max}
-                stroke="#ef4444"
-                strokeDasharray="4 4"
-                label={{
-                  value: `Max: ${threshold.max}${yAxisLabel}`,
-                  position: "insideBottomLeft",
-                  fill: "#ef4444",
-                  fontSize: 12,
-                }}
-              />
-            </>
-          )}
         </LineChart>
       </ResponsiveContainer>
     </div>
