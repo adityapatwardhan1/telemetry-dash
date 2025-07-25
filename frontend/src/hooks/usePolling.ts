@@ -52,9 +52,11 @@ export default function useTelemetry() {
   const wsRef = useRef<WebSocket | null>(null);
 
   useEffect(() => {
+    console.log("Token in WebSocket useEffect:", token);
 
     if (!token) {
       console.log("No token, skipping WebSocket connection");
+
       return;
     }
 
@@ -88,7 +90,7 @@ export default function useTelemetry() {
         let msg;
         try {
           msg = JSON.parse(event.data);
-          console.log("Received WS message:", msg);
+          // console.log("Received WS message:", msg);
         } catch {
           console.log("Non-JSON WS message:", event.data);
           return;

@@ -31,12 +31,17 @@ def set_threshold(threshold_data: ThresholdCreate, db: Session = Depends(get_db)
     if existing:
         existing.min_value = threshold_data.min_value
         existing.max_value = threshold_data.max_value
+        db.commit()               # <-- Save changes
+        db.refresh(existing)      # <-- Refresh in-memory object
+        print(existing.__dict__)
+        return existing
     else:
         new_threshold = Threshold(**threshold_data.dict())
         db.add(new_threshold)
         db.commit()
-        
-    return existing or new_threshold
+        db.refresh(new_threshold)
+        return new_threshold
+
 
 @router.get("/thresholds/{device_id}/{metric}", response_model=ThresholdOut)
 def get_threshold(device_id: int, metric: str, db: Session = Depends(get_db)):
@@ -53,3 +58,9 @@ def get_threshold(device_id: int, metric: str, db: Session = Depends(get_db)):
 @router.get("/thresholds/{device_id}", response_model=List[ThresholdOut])
 def get_all_thresholds(device_id: int, db: Session = Depends(get_db)):
     return db.query(Threshold).filter(Threshold.device_id == device_id).all()
+
+@router.get("/thresholds", response_model=List[ThresholdOut])
+def get_all_thresholds_global(db: Session = Depends(get_db)):
+    res = db.query(Threshold).all()
+    print(res)
+    return res

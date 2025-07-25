@@ -50,41 +50,6 @@ def check_alerts(telemetry_data: Dict[str, Any], db: Session) -> Dict[str, Any]:
     }
 
 
-# def check_alerts(telemetry_data: Dict[str, Any], db: Session) -> Dict[str, bool]:
-#     """
-#     Check telemetry data against custom alert thresholds for a specific device.
-
-#     :param telemetry_data: Dictionary with telemetry values.
-#     :param db: SQLAlchemy DB session.
-#     :return: Dict of alert booleans keyed by alert name.
-#     """
-#     device_id = telemetry_data.get("device_id")
-    
-#     # Fetch thresholds if they exist
-#     thresholds = db.query(Threshold).filter(Threshold.device_id == device_id).all()
-#     threshold_map = {t.metric: t for t in thresholds}
-
-#     battery_threshold = threshold_map.get("battery")
-#     cpu_threshold = threshold_map.get("cpu_usage")
-#     temp_threshold = threshold_map.get("temperature")
-    
-#     battery_min = battery_threshold.min_value if battery_threshold and battery_threshold.min_value is not None else DEFAULTS_MIN["battery"]
-#     cpu_min = cpu_threshold.min_value if cpu_threshold and cpu_threshold.min_value is not None else DEFAULTS_MIN["cpu_usage"]
-#     temp_min = temp_threshold.min_value if temp_threshold and temp_threshold.min_value is not None else DEFAULTS_MIN["temperature"]
-    
-#     battery_max = battery_threshold.max_value if battery_threshold and battery_threshold.max_value is not None else DEFAULTS_MAX["battery"]
-#     cpu_max = cpu_threshold.max_value if cpu_threshold and cpu_threshold.max_value is not None else DEFAULTS_MAX["cpu_usage"]
-#     temp_max = temp_threshold.max_value if temp_threshold and temp_threshold.max_value is not None else DEFAULTS_MAX["temperature"]
-
-#     alerts = {
-#         "battery_alert": not (battery_min <= telemetry_data.get("battery", 100) <= battery_max), 
-#         "cpu_usage_alert": not (cpu_min <= telemetry_data.get("cpu_usage", 100) <= cpu_max), 
-#         "temperature_alert": not (temp_min <= telemetry_data.get("temperature", 100) <= temp_max), 
-#     }
-
-#     return alerts
-
-
 def format_alert_message(device_id: int, alerts: Dict[str, bool], timestamp: str) -> Dict[str, Any]:
     """
     Format alert dictionary into broadcast-ready message.
@@ -100,22 +65,3 @@ def format_alert_message(device_id: int, alerts: Dict[str, bool], timestamp: str
     message = message.rstrip(",") or "Alerts triggered: None"
     formatted["message"] = message
     return formatted
-
-
-
-
-# def format_alert_message(device_id: int, alerts: Dict[str, bool], timestamp: str) -> Dict[str, Any]:
-#     """
-#     Format alert dictionary into broadcast-ready message.
-#     """
-#     formatted = {"device_id": device_id, "timestamp": timestamp, "alerts": alerts}
-#     message = "Alerts triggered:"
-#     if alerts.get("battery_alert", False):
-#         message += " battery low,"
-#     if alerts.get("cpu_alert", False):
-#         message += " CPU usage high,"
-#     if alerts.get("temperature_alert", False):
-#         message += " temperature high,"
-#     message = message.rstrip(",") or "Alerts triggered: None"
-#     formatted["message"] = message
-#     return formatted

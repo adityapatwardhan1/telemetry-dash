@@ -1,10 +1,5 @@
 import React from "react";
-
-type Threshold = {
-  metric: string;
-  min: number;
-  max: number;
-};
+import type { Threshold } from "../types/Threshold"
 
 type Props = {
   thresholds: Threshold[];
