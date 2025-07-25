@@ -4,45 +4,87 @@ A real-time dashboard for visualizing system telemetry from multiple (simulated)
 
 ## Features
 
-    - Live graphs for CPU usage, battery level, and temperature per device
+- Live graphs for CPU usage, battery level, and temperature per device
 
-    - Rule-based threshold alerting with logs
+- Rule-based threshold alerting with logs
 
-    - Admin-only threshold configuration interface
+- Admin-only threshold configuration interface
 
-    - Event log table showing triggered alerts by device
+- Event log table showing triggered alerts by device
 
-    - Device selector with instant updates to all views
+- Device selector with instant updates to all views
 
 ## Tech Stack
 
-    - Frontend: React + TypeScript + TailwindCSS
+- Frontend: React + TypeScript + TailwindCSS
 
-    - Backend: FastAPI (Python)
+- Backend: FastAPI (Python)
 
-    - Data Polling: Custom React hook with live endpoint polling
+- Data Polling: Custom React hook with live endpoint polling
 
-    - Charting: Recharts for clean, responsive graphs
+- Charting: Recharts for clean, responsive graphs
+
+## API Endpoints
+
+### WebSocket Endpoints
+
+/ws/device
+Receives real-time telemetry from devices and broadcasts alerts when thresholds are breached.
+
+/ws/telemetry?token=...
+Secure WebSocket for dashboards to receive live telemetry and alert updates.
+
+### Telemetry Routes
+
+GET /api/telemetry/recent/{device_id}
+Returns the limit (default 20) most recent telemetry records for a device.
+
+GET /api/telemetry/recent_by_time/{device_id}?minutes=X
+Returns all telemetry data from the past X minutes (default 5) for the device.
+
+### Threshold Routes
+
+GET /api/thresholds
+Returns all thresholds for all devices.
+
+GET /api/thresholds/{device_id}
+Returns all thresholds for a specific device.
+
+GET /api/thresholds/{device_id}/{metric}
+Returns the threshold for a specific device and metric.
+
+POST /api/thresholds
+Creates or updates a threshold.
+Body:
+
+    device_id: integer
+
+    metric: string (e.g. "cpu_usage", "battery", "temperature")
+
+    min_value: float (optional)
+
+    max_value: float (optional)
+
 
 ## Local Development
 
-    1. Clone the repo
+1. Clone the repo
 
-    2. Start backend: 
+2. Start backend: 
     
-    From the root folder, run
+From the root folder, run
 
-    ```
-    uvicorn main:app --reload
-    ```
+```
+uvicorn main:app --reload
+```
 
-    3. Start frontend: 
+3. Start frontend: 
 
-    From frontend/, run
+From frontend/, run
 
-    ```
-    npm install
-    npm run dev
-    ```
+```
+npm install
+npm run dev
+```
 
 Frontend served at localhost:5173, backend at localhost:8000.
